@@ -132,7 +132,17 @@
     color:var(--accent);background:var(--accent-soft);border:0;border-radius:12px;cursor:pointer}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate">
+  <div class="box">
+    <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <h2>115-1校安（學務創新）人員培訓班</h2>
+    <p>本通訊錄含個人資料，請輸入通行碼查閱</p>
+    <input id="gpw" type="password" placeholder="請輸入通行碼" autocomplete="off" autofocus>
+    <button id="gbtn">進入通訊錄</button>
+    <div class="err" id="gerr"></div>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <div class="eyebrow">115-1校安（學務創新）人員培訓班</div>
@@ -166,7 +176,22 @@
   <footer>資料僅供校安訓內部聯繫使用，請妥善保管。</footer>
 </div>
 <script>
-
+(function(){
+  var PW="csu3939889";
+  var gate=document.getElementById("gate"),inp=document.getElementById("gpw"),
+      btn=document.getElementById("gbtn"),err=document.getElementById("gerr");
+  function tryUnlock(){
+    if(inp.value===PW){
+      gate.style.display="none";
+      document.body.classList.remove("locked");
+    }else{
+      err.textContent="通行碼錯誤，請再試一次";
+      inp.value="";inp.focus();
+    }
+  }
+  btn.addEventListener("click",tryUnlock);
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter")tryUnlock();});
+})();
 /* ===== 學員資料：把示範資料換成真實資料即可。沒有的欄位留空字串 "" ，系統會自動顯示《未提供》 ===== */
 const DATA = [
   {sid:"101", name:"潘秋國", gender:"男", school:"正修科技大學", duty:"國際生宿舍管理", schoolPhone:"（07）7358800#1207", mobile:"0921-543-577", email:"savrin8754@gmail.com", line:"savrin168", addr:"高雄市鳥松區澄清路840號"},
@@ -386,10 +411,10 @@ render();
 <div id="pmodal">
   <div class="pbox">
     <button class="px" id="px" aria-label="關閉" onclick="closeModal()">&times;</button>
-    <h3>在手機上儲存 PDF</h3>
-    <p class="lead">手機要存 PDF 需透過瀏覽器的「列印／分享」功能，請依你的手機操作：</p>
-    <button class="pgo" id="pdo" onclick="doPrint()">開始列印 / 存成 PDF</button>
-    <p class="lead" style="margin:14px 0 10px">若按上方鈕沒有反應（部分手機瀏覽器不支援），請改用下列方式：</p>
+    <h3>下載 PDF 建議用電腦操作</h3>
+    <p class="lead">手機瀏覽器對「存 PDF」支援不一，<b>建議改用電腦開啟本通訊錄再按下載</b>，可穩定存成條列式 PDF 或列印。<br><br>若仍要在手機嘗試，可先按下方鈕；若沒有反應，再依你的手機用手動方式操作：</p>
+    <button class="pgo" id="pdo" onclick="doPrint()">在手機嘗試列印 / 存 PDF</button>
+    <p class="lead" style="margin:14px 0 10px">手動存法：</p>
     <div class="osblock">
       <b>Android（Chrome）</b>
       <p>點右上角「⋮」→「列印」→ 上方印表機選「儲存成 PDF」→ 按下載。</p>
