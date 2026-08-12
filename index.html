@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校安訓學員通訊錄</title>
+<style>
+  :root{
+    --ink:#152238; --ink-soft:#5a6b82; --line:#e2e6ee;
+    --bg:#f6f7fb; --card:#ffffff; --accent:#2f5fd0; --accent-soft:#eaf0fd;
+    --muted:#9aa6b8;
+    --shadow:0 1px 2px rgba(21,34,56,.06),0 8px 24px rgba(21,34,56,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+  header{margin-bottom:22px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
+  h1{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-.01em;margin-top:6px}
+  .sub{color:var(--ink-soft);margin-top:4px;font-size:15px}
+  .toolbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:16px 0 8px}
+  .searchbox{position:relative}
+  .searchbox svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:20px;height:20px;stroke:var(--ink-soft)}
+  #q{width:100%;padding:15px 16px 15px 46px;font-size:16px;border:1.5px solid var(--line);
+    border-radius:14px;background:var(--card);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+  #q:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+  .sortlabel{font-size:13px;color:var(--ink-soft);font-weight:600}
+  .seg{display:inline-flex;background:var(--card);border:1.5px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);
+    padding:7px 14px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s}
+  .seg button.on{background:var(--accent);color:#fff}
+  .dir{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--card);
+    border:1.5px solid var(--line);border-radius:11px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .dir svg{width:15px;height:15px;stroke:var(--accent)}
+  .dlbtn{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;border:0;
+    border-radius:11px;padding:9px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+    box-shadow:0 2px 6px rgba(47,95,208,.28);transition:filter .12s,transform .12s}
+  .dlbtn:hover{filter:brightness(1.05)}
+  .dlbtn:active{transform:translateY(1px)}
+  .dlbtn svg{width:16px;height:16px;stroke:#fff}
+  /* 列印用條列表格，螢幕上隱藏 */
+  #printView{display:none}
+  @media print{
+    .toolbar,footer,#groups,.dlbtn,.dir,.searchbox,.controls,.meta{display:none!important}
+    body{background:#fff;color:#000}
+    .wrap{max-width:none;padding:0}
+    header{margin-bottom:8px}
+    h1{font-size:20px}
+    .sub{display:none}
+    #printView{display:block}
+    table.plist{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed}
+    table.plist th,table.plist td{border:1px solid #999;padding:4px 5px;text-align:left;
+      vertical-align:top;word-break:break-all;line-height:1.35}
+    table.plist th{background:#eef2fb;font-weight:700;font-size:10px}
+    table.plist tr{break-inside:avoid}
+    table.plist thead{display:table-header-group}
+    .pna{color:#999}
+    @page{margin:10mm}
+  }
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;color:var(--ink-soft)}
+  #count strong{color:var(--ink)}
+  .groups{margin-top:14px}
+  .grouphead{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.02em;
+    margin:22px 4px 12px;display:flex;align-items:center;gap:10px}
+  .grouphead::after{content:"";flex:1;height:1px;background:var(--line)}
+  .grouphead:first-child{margin-top:4px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;
+    box-shadow:var(--shadow);transition:transform .12s,box-shadow .12s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(21,34,56,.08),0 16px 40px rgba(21,34,56,.10)}
+  .card-top{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+  .avatar{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff}
+  .name-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .name{font-weight:700;font-size:16px;letter-spacing:-.01em}
+  .sid{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .badge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;line-height:1.5}
+  .b-m{background:#e7f0ff;color:#2f5fd0}
+  .b-f{background:#ffe9f0;color:#d94f6a}
+  .org{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+  .duty{font-size:12.5px;color:var(--ink);margin-top:2px;font-weight:600}
+  .rows{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:10px}
+  .row{display:flex;align-items:flex-start;gap:9px;font-size:13px;text-decoration:none;color:var(--ink)}
+  a.row:hover .val{color:var(--accent)}
+  .row .ic{width:15px;height:15px;stroke:var(--ink-soft);flex:none;margin-top:2px}
+  .val{word-break:break-all}
+  .na{color:var(--muted);font-style:normal}
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+  .empty b{color:var(--ink);display:block;font-size:17px;margin-bottom:4px}
+  mark{background:#fff2ac;color:inherit;border-radius:3px;padding:0 1px}
+  footer{margin-top:40px;text-align:center;font-size:12px;color:var(--ink-soft)}
+  @media(max-width:480px){.wrap{padding:20px 14px 60px}.grid{grid-template-columns:1fr}.dir{margin-left:0}.seg button{padding:7px 11px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">115-1校安（學務創新）人員培訓班</div>
+    <h1>學員通訊錄</h1>
+    <p class="sub">即時搜尋任一欄位，可依業管業務、學校、縣市排序。點電話或信箱可直接撥號、寄信。</p>
+  </header>
+  <div class="toolbar">
+    <div class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="搜尋學號、姓名、學校、業務、電話、信箱…" autocomplete="off">
+    </div>
+    <div class="controls">
+      <span class="sortlabel">排序</span>
+      <div class="seg" id="seg">
+        <button data-k="sid" class="on">學號</button>
+        <button data-k="duty">業管業務</button>
+        <button data-k="school">學校</button>
+        <button data-k="city">縣市</button>
+      </div>
+      <button class="dir" id="dir"><svg id="dirIcon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m6 11 6-6 6 6"/></svg><span id="dirText">A→Z</span></button>
+      <button class="dlbtn" id="dl" title="下載或列印整份通訊錄"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>下載 PDF</button>
+    </div>
+    <div class="meta">
+      <span id="count"></span>
+      <span>共 <span id="total"></span> 位學員</span>
+    </div>
+  </div>
+  <div id="groups" class="groups"></div>
+  <div id="empty" class="empty" style="display:none"><b>找不到符合的學員</b>試試其他關鍵字，或清除搜尋條件。</div>
+  <div id="printView"></div>
+  <footer>資料僅供校安訓內部聯繫使用，請妥善保管。</footer>
+</div>
+<script>
+/* ===== 學員資料：把示範資料換成真實資料即可。沒有的欄位留空字串 "" ，系統會自動顯示《未提供》 ===== */
+const DATA = [
+  {sid:"101", name:"潘秋國", gender:"男", school:"正修科技大學", duty:"國際生宿舍管理", schoolPhone:"（07）7358800#1207", mobile:"0921-543-577", email:"savrin8754@gmail.com", line:"savrin168", addr:"高雄市鳥松區澄清路840號"},
+  {sid:"219", name:"劉俊傑", gender:"男", school:"國立臺南大學", duty:"交通安全、兵役", schoolPhone:"06-2133111（363）", mobile:"", email:"", line:"", addr:""},
+  {sid:"103", name:"董文慧", gender:"女", school:"苗栗仁德醫專", duty:"校車", schoolPhone:"", mobile:"", email:"a78983771@gmail.com", line:"1982124..", addr:""},
+  {sid:"404", name:"魏俊誠", gender:"男", school:"高雄中山工商", duty:"藥物濫用（受訓前）、受訓後調整校內業務", schoolPhone:"077815311-239", mobile:"0980-415-243", email:"a69064@gmail.com", line:"0980415243", addr:"高雄市大寮區正氣路79號"},
+  {sid:"123", name:"李杰倫", gender:"男", school:"嘉義市輔仁中學", duty:"參一四及交通安全", schoolPhone:"05-2281001轉305", mobile:"0932-623-131", email:"galent73243@gmail.com", line:"無", addr:"嘉義市吳鳳南路270號"},
+  {sid:"203", name:"呂隆翔", gender:"男", school:"中臺科技大學", duty:"兵役、愛校服務、霸凌、群英會、環保志工社", schoolPhone:"04-22392412（8203）", mobile:"0982-512-851", email:"a02040823@gmail.com", line:"happyhomes", addr:"40601臺中市北屯區廍子里廍子路666號"},
+  {sid:"213", name:"張綵軒", gender:"女", school:"左營高中", duty:"反毒反詐", schoolPhone:"07-5822010#283", mobile:"0938-109-789", email:"as938109789@tyhs.kh.edu.tw", line:"sandy67893", addr:"高雄市左營區海功路55號"},
+  {sid:"424", name:"胡銀財", gender:"男", school:"台南市私立育德工家", duty:"體衛組組長、霸凌、性平、防災、交通安全", schoolPhone:"06-6563275#233", mobile:"0938-555-127", email:"fu555127@gmail.com", line:"09385555127", addr:"台南市新營區健康路211號"},
+  {sid:"114", name:"郭祐嘉", gender:"男", school:"高雄高商", duty:"寒暑假工讀", schoolPhone:"", mobile:"", email:"", line:"", addr:""},
+  {sid:"314", name:"蔡雨酉", gender:"男", school:"高雄市立新莊高級中學", duty:"防震防災、生輔協行", schoolPhone:"07-3420103#875", mobile:"0920-118-263", email:"giveyuallnewlife@gmail.com", line:"YuYu_Tsai", addr:"高雄市左營區文慈路99號"},
+  {sid:"318", name:"張雅淳", gender:"女", school:"屏東高中", duty:"宿舍", schoolPhone:"08-7656444#332", mobile:"0935-720-603", email:"cyc0935620603@gmail.com", line:"cyc0935720603", addr:"屏東縣屏東市忠孝路231號"},
+  {sid:"119", name:"賴佳鴻", gender:"男", school:"嘉義女中", duty:"春暉、分會", schoolPhone:"", mobile:"", email:"", line:"", addr:""},
+  {sid:"307", name:"蕭新民", gender:"男", school:"長庚科技大學", duty:"住宿逃生、導師訪視及宿幹訓練", schoolPhone:"03-2118999（3553）", mobile:"0953-601-466", email:"smshiao@mail.cgust.edu.tw", line:"", addr:""},
+  {sid:"125", name:"黃嘉仁", gender:"男", school:"台南市-德光中學", duty:"霸凌、交通安全", schoolPhone:"（06）289-4560（轉618）", mobile:"0933-273-033", email:"jaren1005@tkgsh.tn.edu.tw", line:"jaren701005", addr:"701臺南市東區德光里德光街106號"},
+  {sid:"309", name:"陳淑瓊", gender:"女", school:"中正高工", duty:"賃居、交通服務隊", schoolPhone:"07- 723 2301 #461", mobile:"0987-903-292", email:"jones3388402@gmail.com", line:"無", addr:"806高雄市前鎮區竹西里光華二路80號"},
+  {sid:"317", name:"洪綉婷", gender:"女", school:"彰化縣國立北斗家商", duty:"性平", schoolPhone:"0488822224#356", mobile:"0922-556-165", email:"hsiuting1979@gmail.com", line:"0922556165", addr:"52143 彰化縣北斗鎮學府路50號"},
+  {sid:"219", name:"劉俊傑", gender:"男", school:"國立臺南大學", duty:"交通安全、兵役業務", schoolPhone:"06-2133111（363）", mobile:"", email:"jeterliu08@mail.nutn.edu.tw", line:"", addr:""},
+  {sid:"403", name:"黃清衛", gender:"男", school:"吳鳳科大", duty:"宿舍輔導員兼校安輪值（含學輔活動 賃居 住宿補助.. ）", schoolPhone:"05-2267125#24125", mobile:"0921-385-747", email:"", line:"0921385747", addr:"嘉義縣民雄鄉建國路二段117號"},
+  {sid:"122", name:"呂娟芳", gender:"女", school:"澎湖科技大學", duty:"急難救助金、學雜費減免、租賃", schoolPhone:"06-9264115#1222", mobile:"0963-165-524", email:"", line:"", addr:""},
+  {sid:"202", name:"陳瑞宏", gender:"男", school:"中國醫藥大學北港分部", duty:"宿舍褓姆（哩哩扣扣）、學產（急難慰問）...請參考網頁罄竹難書", schoolPhone:"05-7833039#1200", mobile:"0917-060-473", email:"rhc5811270938@yahoo.com.tw", line:"0981965898", addr:"雲林縣北港鎮新德路123-1號"},
+  {sid:"403", name:"黃清衛", gender:"男", school:"吳鳳科大", duty:"宿舍輔導員兼校安輪值（含學輔活動 賃居 教育部住宿補助..）", schoolPhone:"05-2267125#24125", mobile:"0921-385-747", email:"hcw7761@gmail.com", line:"0921385747", addr:"嘉義縣民雄鄉建國路二段117號"},
+  {sid:"221", name:"楊英月", gender:"女", school:"臺東大學", duty:"警衛保全，防災，學生特色主題，學務創新人力", schoolPhone:"089-517377#1246", mobile:"", email:"musicyang89@gmail.com", line:"yueh1103", addr:""},
+  {sid:"423", name:"林欣儀", gender:"女", school:"臺北市立大學附屬大理高級中學", duty:"生輔組的大部分業務（交通 性平 霸凌...)", schoolPhone:"0223026959#133、134", mobile:"0919-598-230", email:"t881@mailclass.tlsh.tp.edu.tw", line:"", addr:"臺北市萬華區長順街2號"},
+  {sid:"413", name:"朱慧明", gender:"女", school:"新興高中", duty:"人事、霸凌", schoolPhone:"07-2727127#2033", mobile:"0930-773-688", email:"mypuppy@hhhs.kh.edu.tw", line:"mypuppy", addr:"高雄市新興區五福二路218號"},
+  {sid:"224", name:"莊擇韙", gender:"男", school:"臺南市立沙崙高中", duty:"主要-性平 霸凌 藥物/危機處理 次要-運動會/畢典/各項活動", schoolPhone:"06-3032062#7206", mobile:"0933-642-762", email:"jryelf@gmail.com", line:"jerrydog", addr:"711010臺南市歸仁區武東里歸仁六路2號"},
+  {sid:"323", name:"趙國正", gender:"男", school:"實踐大學(臺北校區)", duty:"宿舍管理丶菸害防治", schoolPhone:"02-25337582", mobile:"0975-732-845", email:"artyjaw.tw@gmail.com", line:"arty chao", addr:"臺北市中山區大直街70號"},
+  {sid:"410", name:"王雅璉", gender:"女", school:"高雄高工", duty:"反毒反詐、特定人員、高關懷、遺失物", schoolPhone:"", mobile:"0970-882-706", email:"ellen0970882706@gmail.com", line:"ellen0541", addr:"807高雄市三民區寶珠里建工路419號"},
+  {sid:"422", name:"劉季錞", gender:"男", school:"實踐大學", duty:"霸凌、法治教育、畢業典禮", schoolPhone:"02-25337582", mobile:"0910-590-265", email:"rocnicodemus@gmail.com", line:"0905121112", addr:"台北巿中山區大直街69號"},
+  {sid:"304", name:"徐渙騰", gender:"男", school:"佛光大學-大漢專班", duty:"暫無分類", schoolPhone:"03-8261818", mobile:"0911-013-679", email:"hsuboris@gmail.com", line:"borishht", addr:"花蓮縣新城鄉樹人街1號"},
+  {sid:"311", name:"廖沛靜", gender:"女", school:"高雄市左營區海青工商", duty:"藥物濫用", schoolPhone:"075850707#730", mobile:"0988-808-837", email:"agnes96617@hcvs.kh.edu.tw", line:"c63699", addr:"高雄市左營區左營大路1號"},
+  {sid:"121", name:"林愷廷", gender:"男", school:"鳳山商工", duty:"差假、勤務排訂、輔導班級、秩序維護社", schoolPhone:"077479045", mobile:"0982-586-519", email:"jasan088@hotmail.com", line:"Jasan0881223", addr:"高雄市鳳山區文衡路51號"},
+  {sid:"109", name:"吳美慧", gender:"女", school:"小港高中", duty:"學生缺曠。性平", schoolPhone:"807", mobile:"0916-266-037", email:"hu0916266037@mail.hkhs.kh.edu.tw", line:"0916266037", addr:""},
+  {sid:"215", name:"高瑞奇", gender:"女", school:"高雄高商", duty:"急難救助", schoolPhone:"07-2296583#1325", mobile:"0918-131-835", email:"ricky913929@gmail.com", line:"913929ricky", addr:"高雄市新興區五福二路3號"},
+  {sid:"105", name:"高小文", gender:"男", school:"高苑工商", duty:"性平、霸凌、全民國防、學創人員經費（預算）申請", schoolPhone:"07-6122453", mobile:"0982-373-497", email:"wenuni99@gmail.com", line:"0982373497", addr:"高雄市橋頭區芋寮路1號"},
+  {sid:"201", name:"翁龍義", gender:"男", school:"正修科技大學", duty:"宿舍業務", schoolPhone:"07-7358800轉1120", mobile:"0986-757-888", email:"lungyi1967@yahoo.com.tw", line:"0986757888", addr:"高雄市鳥松區澄清路840號"},
+  {sid:"220", name:"林經隆", gender:"男", school:"後壁高中", duty:"藥物濫用", schoolPhone:"", mobile:"0985-014-956", email:"", line:"0985014956", addr:""},
+  {sid:"315", name:"陳怡臻", gender:"女", school:"高雄市瑞祥高中", duty:"交通安全", schoolPhone:"07-8152271#291", mobile:"", email:"xechen1201@gmail.com", line:"05369", addr:"高雄市前鎮區班超路63號"},
+  {sid:"205", name:"楊蕙明", gender:"女", school:"佛光大學", duty:"學雜費減免、弱勢助學、霸凌、獎學金、三好校園等", schoolPhone:"03-9871000#11217", mobile:"0939-123-673", email:"", line:"pia.yang", addr:"262307宜蘭縣礁溪鄉林美村林尾路160號"},
+  {sid:"102", name:"李毓臻", gender:"男", school:"中山工商", duty:"衛生組長", schoolPhone:"205", mobile:"0913-862-752", email:"a0913862752@gmail.com", line:"a0913862752", addr:"高雄市大寮區正汽路89號"},
+  {sid:"218", name:"徐振瑋", gender:"男", school:"高雄市立福誠高中", duty:"反毒", schoolPhone:"07-8224646#333", mobile:"", email:"", line:"小瑋", addr:"高雄市鳳山區五甲三路176號"},
+  {sid:"416", name:"顏振文", gender:"男", school:"岡山農工", duty:"校外聯巡、急難救助", schoolPhone:"", mobile:"0988-267-852", email:"i067@ms.ksvs.khc.edu.tw", line:"0988267852", addr:""},
+  {sid:"216", name:"胡智欽", gender:"男", school:"新莊高中", duty:"交通.霸凌", schoolPhone:"073420103 #873", mobile:"0973-063-834", email:"ecena28@gmail.com", line:"ecena28", addr:"813高雄市左營區福山里文慈路99號"},
+  {sid:"117", name:"翁家明", gender:"男", school:"屏東高中學創", duty:"交通、反毒", schoolPhone:"", mobile:"0918-884-302", email:"na995011@stust.edu.tw", line:"Bigboom1230", addr:"屏東市忠孝路231號"},
+  {sid:"305", name:"陳榮華", gender:"男", school:"中山工商", duty:"賃居，工讀，菸害防制", schoolPhone:"", mobile:"0985-487-939", email:"", line:"", addr:""},
+  {sid:"112", name:"林玟吟", gender:"女", school:"高雄高工", duty:"賃居工讀校外會", schoolPhone:"", mobile:"", email:"", line:"https://line.me/ti/p/_njltXaN1X", addr:""},
+  {sid:"106", name:"廖永軒", gender:"男", school:"私立嶺東中學", duty:"交通安全", schoolPhone:"", mobile:"", email:"", line:"", addr:""},
+  {sid:"107", name:"周松村", gender:"男", school:"南亞技術學院", duty:"校安教官", schoolPhone:"03 436 1070-4150", mobile:"0935-616-696", email:"beck.chou6510@gmail.com", line:"0935616696", addr:"320桃園市中壢區龍昌里中山東路三段414號"},
+  {sid:"412", name:"張芙甄", gender:"女", school:"高雄高商", duty:"交通安全", schoolPhone:"07-2269975#1323", mobile:"0921-230-126", email:"2015newapple@gmail.com", line:"Travelhappy", addr:"高雄市新興區五福二路3號"},
+  {sid:"111", name:"林國祥", gender:"男", school:"六龜高中", duty:"反毒反詐騙、交通安全、校外會、全民動員", schoolPhone:"07-6891023#303", mobile:"0928-351-229", email:"", line:"kis778899", addr:"844高雄市六龜區義寶里光復路212號"},
+  {sid:"206", name:"侯至隆", gender:"男", school:"高雄市中山工商", duty:"交通安全", schoolPhone:"07-7815311#214", mobile:"", email:"jackuson09@yahoo.com.tw", line:"jackuson09", addr:"高雄市大寮區會社里正氣路79號"},
+  {sid:"407", name:"林于暄", gender:"女", school:"高雄小港高中", duty:"藥物濫用/國防/防災", schoolPhone:"", mobile:"0933-321-652", email:"hsuan1118@mail.hkhs.kh.edu.tw", line:"", addr:""},
+  {sid:"408", name:"許傑安", gender:"男", school:"中正高工", duty:"防災", schoolPhone:"460.461", mobile:"0905-586-558", email:"chienan@mail2.ccvs.kh.edu.tw", line:"090586558", addr:"高雄市前鎮區光華二路80號"},
+  {sid:"207", name:"陳芊語", gender:"女", school:"仁德醫護管理專科學校", duty:"導師會議、服務學習、校外淨灘活動、績優導師", schoolPhone:"", mobile:"0902-210-963", email:"p02749@gm.jente.edu.tw", line:"0902210963", addr:""},
+  {sid:"417", name:"吳孝謹", gender:"男", school:"屏東高中", duty:"教育類", schoolPhone:"", mobile:"0913-988-103", email:"a0913988103@gmail.com", line:"qwaq690503", addr:""},
+  {sid:"222", name:"欒業翔", gender:"男", school:"國立臺東女子高級中學", duty:"霸凌、交通、校園安全、校事會議", schoolPhone:"089-321268#540", mobile:"0933-802-368", email:"sky1234567800@gmail.com", line:"sky1234567800", addr:"臺東縣臺東市四維路一段690號"},
+  {sid:"415", name:"蘇景煜", gender:"男", school:"成功商水", duty:"協助訓育及急難救助等業務", schoolPhone:"", mobile:"", email:"", line:"simbo01448846", addr:""},
+  {sid:"418", name:"李季娟", gender:"女", school:"草屯商工", duty:"藥物濫用", schoolPhone:"2122", mobile:"", email:"jiyuan@mail.ttvs.ntct.edu.tw", line:"", addr:""},
+  {sid:"209", name:"鄭至堅", gender:"男", school:"普門中學", duty:"臨時交辦事項、行安、防毒、就學貸款、家長會、校外會、愛校服務", schoolPhone:"", mobile:"", email:"pophouse1118@gmail.com", line:"bosszheng1118", addr:""},
+  {sid:"301", name:"車富隆", gender:"男", school:"正修科大", duty:"宿舍老師", schoolPhone:"", mobile:"0921-296-353", email:"", line:"", addr:""},
+  {sid:"120", name:"黃葦琳", gender:"女", school:"台東女中", duty:"災防、性平（協助）", schoolPhone:"089-321268#236", mobile:"0980-631-608", email:"9323120a@gmail.com", line:"lala721109", addr:"台東市四維路一段690號"},
+  {sid:"106", name:"廖永軒", gender:"男", school:"私立嶺東中學", duty:"交通安全", schoolPhone:"", mobile:"0938-933-803", email:"e73752000@gmail.com", line:"938933803", addr:""},
+  {sid:"313", name:"楊雅涵", gender:"女", school:"高雄高商", duty:"性平", schoolPhone:"07-2269975 #1323", mobile:"0977-141-243", email:"ohyahan25@ksvcs.kh.edu.tw", line:"as11616", addr:"高雄市新興區五福二路3號"},
+  {sid:"207", name:"陳芊語", gender:"女", school:"仁德醫護管理專科", duty:"導師會議、績優導師、服務學習、校外淨灘等", schoolPhone:"#3503", mobile:"0902-210-963", email:"p02749@gm.jente.edu.tw", line:"0902210963", addr:"苗栗縣後龍鎮"},
+  {sid:"211", name:"吳旻芝", gender:"女", school:"高雄市中山高中", duty:"交通、學生專車、校外會、賃居工讀、", schoolPhone:"07-3641116#195", mobile:"0922-477-885", email:"", line:"0922477885", addr:""},
+  {sid:"319", name:"李湘婷", gender:"女", school:"國立草屯商工", duty:"校園霸凌", schoolPhone:"049-2362082（2122）", mobile:"0960-120-335", email:"s2564152s@gmail.com", line:"judo850725", addr:"542南投縣草屯鎮芬草路二段736號"},
+  {sid:"320", name:"李憶珠", gender:"女", school:"國立高雄科技大學學務處生輔組", duty:"生輔組行政業務窗口", schoolPhone:"07-6011000#31902", mobile:"", email:"gtem061966@nkust.edu.tw", line:"", addr:"高雄市燕巢區大學路1號"},
+  {sid:"122", name:"呂娟芳", gender:"女", school:"澎湖科技大學", duty:"急難救助、學費減免、租賃", schoolPhone:"06-9264115#1222", mobile:"0963-165-524", email:"x0963165524@gmail.com", line:"", addr:""},
+  {sid:"225", name:"黃聖哲", gender:"男", school:"屏東縣立枋寮高級中學", duty:"藥物濫用、霸凌、性平、校外聯巡", schoolPhone:"08-8782095#49", mobile:"0972-995-288", email:"tom8792468@gmail.com", line:"0972995288", addr:"940屏東縣枋寮鄉新龍村義民路3號"},
+  {sid:"214", name:"劉傳秀", gender:"女", school:"高雄高工", duty:"教育等", schoolPhone:"07-3815366#2298", mobile:"0987-770-999", email:"emilyverygood@gmail.com", line:"0987770999", addr:"高雄市三民區建工路419號"},
+  {sid:"104", name:"許銘峻", gender:"男", school:"屏東縣私立民生家商", duty:"藥物濫用、交通安全、防詐、校安通報、住宿租賃、交通車", schoolPhone:"08-7223029", mobile:"0982-077-097", email:"martin73029@gmail.com", line:"0911673602", addr:"屏東市民生東路12號"},
+  {sid:"419", name:"蔡牧蝶", gender:"女", school:"嘉義大學", duty:"藥物濫用", schoolPhone:"05-2068604", mobile:"0908-177-592", email:"mumu516055@gmail.com", line:"", addr:""},
+  {sid:"415", name:"蘇景煜", gender:"男", school:"成功商水", duty:"支援訓育急難救助及新生管理", schoolPhone:"", mobile:"", email:"in01448846@gmail.com", line:"", addr:""},
+  {sid:"406", name:"陳彥豪", gender:"男", school:"長榮大學", duty:"（夜間）處理學生緊急狀況", schoolPhone:"1231", mobile:"", email:"yanhao@mail.cjcu.edu.tw", line:"", addr:""},
+  {sid:"312", name:"陳瑞安", gender:"男", school:"高雄高工", duty:"主要協助生輔組 註冊組工作", schoolPhone:"2227", mobile:"0919-803-342", email:"fivexisray@gmail.com", line:"", addr:""},
+  {sid:"108", name:"陳映婕", gender:"女", school:"台南私立長榮中學", duty:"性平、霸凌", schoolPhone:"06-2381711（3285）", mobile:"0911-655-504", email:"a_wei00530@yahoo.com.tw", line:"kyooil2588", addr:"臺南市東區中西里林森路二段79號"},
+  {sid:"409", name:"許麗珠", gender:"女", school:"中正高中", duty:"交通安全", schoolPhone:"", mobile:"0927-566-758", email:"kh170008@cchs.kh.edu.tw", line:"", addr:"高雄市苓雅區中正一號8號"},
+  {sid:"308", name:"宋雅萍", gender:"女", school:"小港高中", duty:"校外會、詐騙、性平、霸凌", schoolPhone:"", mobile:"", email:"a0922012557@yahoo.com.tw", line:"", addr:""},
+  {sid:"124", name:"蔡盈煖", gender:"女", school:"彰化藝術高中", duty:"尿意篩檢、藥物濫用 （目前0經驗 😆）", schoolPhone:"", mobile:"", email:"sunny82081114@gmail.com", line:"p0983052937", addr:"彰化縣彰化市卦山路13號"},
+  {sid:"303", name:"林浚明", gender:"男", school:"西苑高中", duty:"性平", schoolPhone:"#725", mobile:"", email:"b928256@gmail.com", line:"d928256", addr:"台中市西屯區漢翔路188號"},
+  {sid:"118", name:"房玉閔", gender:"女", school:"國立草屯商工", duty:"交通安全、校園安全、校外會窗口、急難救助金申請", schoolPhone:"049-2362082 分機 2123", mobile:"0975-242-760", email:"yumin1998@mail.ttvs.ntct.edu.tw", line:"corn1105", addr:"542南投縣草屯鎮芬草路二段736號"},
+  {sid:"420", name:"田嘉豪", gender:"男", school:"台東女中", duty:"社團、協助訓育（衛生）組", schoolPhone:"", mobile:"", email:"", line:"zigou", addr:""},
+  {sid:"115", name:"黃愉甯", gender:"女", school:"新興高中", duty:"愛校服務", schoolPhone:"2034", mobile:"0989-390-684", email:"hellomandyhuang@gmail.com", line:"hello_mandy210", addr:"高雄市新興區"},
+  {sid:"223", name:"郭子豪", gender:"男", school:"實踐大學", duty:"生輔組/申訴業務/學務處秘書", schoolPhone:"02-25337582", mobile:"0905-358-866", email:"115jk86@g2.usc.edu.tw", line:"", addr:"台北市中山區"},
+  {sid:"302", name:"林翠璧", gender:"女", school:"中臺科技大學", duty:"生活輔導組業務（友善校園、品德教育、獎懲、操行、缺曠、請假）", schoolPhone:"04-22392412#8121#", mobile:"0963-350-585", email:"a0963350585@gmail.com", line:"rasalin", addr:"台中市北屯區廍子路666號"},
+  {sid:"217", name:"王慧君", gender:"女", school:"高雄市立楠梓高中", duty:"交通、反毒", schoolPhone:"07 355 0571#8223", mobile:"", email:"water24252010@gmail.com", line:"", addr:"811高雄市楠梓區清豐里清豐路19號"},
+];
+/* ============================================================================================= */
+const COLORS=["#2f5fd0","#d94f6a","#2f9e6e","#c47b1e","#7a52c9","#1f8fb0","#c85a2a","#4a6b3d"];
+const NA='<span class="na">《未提供》</span>';
+const groupsEl=document.getElementById("groups");
+const empty=document.getElementById("empty");
+const q=document.getElementById("q");
+document.getElementById("total").textContent=DATA.length;
+let sortKey="sid", asc=true;
+function cityOf(p){var a=(p.addr||"").replace(/^[0-9\s]+/,"").replace(/^台/,"臺");var m=a.match(/^(..[縣市])/);if(!m)return"";var c=m[1];if(c==="臺北巿")c="臺北市";return c.replace("巿","市")}
+function cleanSchool(p){return (p.school||"").replace(/^(國立|私立|市立|縣立|國立)/,"")}
+function keyVal(p){return sortKey==="sid"?(p.sid||""):sortKey==="duty"?(p.duty||""):sortKey==="school"?cleanSchool(p):cityOf(p)}
+const icons={
+  phone:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z"/></svg>',
+  mobile:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>',
+  mail:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
+  line:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 7 0 1 0-3.6 5.7c.4-.3.9-.2 1.3 0l2.3 1-.6-2.3c-.1-.4 0-.8.3-1.1A6.8 6.8 0 0 0 21 11.5Z"/></svg>',
+  pin:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>'
+};
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function hl(text,term){if(!text)return"";if(!term)return esc(text);
+  const i=text.toLowerCase().indexOf(term.toLowerCase());if(i<0)return esc(text);
+  return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+term.length))+"</mark>"+esc(text.slice(i+term.length))}
+function field(text,term){return text&&text.trim()?hl(text,term):NA}
+function initial(n){return (n||"？").trim().slice(-2)}
+function rowLink(icon,val,term,href){
+  if(!val||!val.trim())return '<div class="row">'+icon+'<span class="val">'+NA+'</span></div>';
+  const inner=icon+'<span class="val">'+hl(val,term)+'</span>';
+  return href?'<a class="row" href="'+href+'">'+inner+'</a>':'<div class="row">'+inner+'</div>';
+}
+function cardHTML(p,term){
+  const c=COLORS[DATA.indexOf(p)%COLORS.length];
+  const gb=p.gender==="男"?'<span class="badge b-m">男</span>':p.gender==="女"?'<span class="badge b-f">女</span>':"";
+  const tel=p.schoolPhone?"tel:"+p.schoolPhone.replace(/[^0-9+#]/g,''):"";
+  const mob=p.mobile?"tel:"+p.mobile.replace(/[^0-9+]/g,''):"";
+  const mail=p.email?"mailto:"+esc(p.email):"";
+  return '<div class="card">'+
+    '<div class="card-top">'+
+      '<div class="avatar" style="background:'+c+'">'+esc(initial(p.name))+'</div>'+
+      '<div>'+
+        '<div class="name-line"><span class="name">'+hl(p.name,term)+'</span>'+gb+'<span class="sid">'+field(p.sid,term)+'</span></div>'+
+        '<div class="org">'+field(cleanSchool(p),term)+'</div>'+
+        '<div class="duty">業管：'+field(p.duty,term)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="rows">'+
+      rowLink(icons.phone,p.schoolPhone,term,tel)+
+      rowLink(icons.mobile,p.mobile,term,mob)+
+      rowLink(icons.mail,p.email,term,mail)+
+      rowLink(icons.line,p.line,term,"")+
+      rowLink(icons.pin,p.addr,term,"")+
+    '</div>'+
+  '</div>';
+}
+function render(){
+  const term=q.value.trim();const t=term.toLowerCase();
+  let list=DATA.filter(p=>!t||[p.sid,p.name,p.gender,p.school,p.duty,p.schoolPhone,p.mobile,p.email,p.line,p.addr].join(" ").toLowerCase().includes(t));
+  document.getElementById("count").innerHTML=t?'符合 <strong>'+list.length+'</strong> 筆':"";
+  list.sort((a,b)=>{
+    const ka=keyVal(a),kb=keyVal(b);
+    if(sortKey==="sid"){
+      const na=parseInt(ka,10),nb=parseInt(kb,10);
+      const va=isNaN(na)?Infinity:na,vb=isNaN(nb)?Infinity:nb;
+      return asc?va-vb:vb-va;
+    }
+    if(!ka&&kb)return 1;if(ka&&!kb)return -1;
+    const r=ka.localeCompare(kb,"zh-Hant");return asc?r:-r;
+  });
+  window.__list=list;
+  if(sortKey==="sid"){
+    groupsEl.innerHTML='<div class="grid">'+list.map(p=>cardHTML(p,term)).join("")+'</div>';
+  }else{
+    const groups={};const order=[];
+    list.forEach(p=>{const k=keyVal(p)||"《未提供》";if(!groups[k]){groups[k]=[];order.push(k)}groups[k].push(p)});
+    groupsEl.innerHTML=order.map(k=>
+      '<div class="grouphead">'+esc(k)+'（'+groups[k].length+'）</div>'+
+      '<div class="grid">'+groups[k].map(p=>cardHTML(p,term)).join("")+'</div>'
+    ).join("");
+  }
+  empty.style.display=list.length?"none":"block";
+  groupsEl.style.display=list.length?"block":"none";
+}
+document.getElementById("seg").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll("#seg button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");sortKey=b.dataset.k;render();
+});
+document.getElementById("dir").addEventListener("click",()=>{
+  asc=!asc;
+  document.getElementById("dirText").textContent=asc?"A→Z":"Z→A";
+  document.getElementById("dirIcon").style.transform=asc?"rotate(0deg)":"rotate(180deg)";
+  render();
+});
+function pf(v){return v&&String(v).trim()?esc(v):'<span class="pna">未提供</span>'}
+function buildPrint(){
+  const L=window.__list||DATA;
+  var rows=L.map(function(p,i){
+    return '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td>'+pf(p.sid)+'</td>'+
+      '<td>'+pf(p.name)+'</td>'+
+      '<td>'+pf(p.gender)+'</td>'+
+      '<td>'+pf(cleanSchool(p))+'</td>'+
+      '<td>'+pf(p.duty)+'</td>'+
+      '<td>'+pf(p.schoolPhone)+'</td>'+
+      '<td>'+pf(p.mobile)+'</td>'+
+      '<td>'+pf(p.email)+'</td>'+
+      '<td>'+pf(p.line)+'</td>'+
+      '<td>'+pf(p.addr)+'</td>'+
+    '</tr>';
+  }).join("");
+  document.getElementById("printView").innerHTML=
+    '<table class="plist"><colgroup>'+
+    '<col style="width:3%"><col style="width:6%"><col style="width:7%"><col style="width:4%">'+
+    '<col style="width:12%"><col style="width:13%"><col style="width:12%"><col style="width:10%">'+
+    '<col style="width:15%"><col style="width:8%"><col style="width:10%"></colgroup>'+
+    '<thead><tr><th>#</th><th>學號</th><th>姓名</th><th>性別</th><th>學校</th><th>業管業務</th>'+
+    '<th>學校電話</th><th>行動電話</th><th>電子信箱</th><th>Line ID</th><th>學校地址</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table>';
+}
+document.getElementById("dl").addEventListener("click",function(){buildPrint();window.print();});
+q.addEventListener("input",render);
+render();
+</script>
+</body>
+</html>
