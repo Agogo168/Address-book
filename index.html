@@ -45,7 +45,7 @@
   /* 列印用條列表格，螢幕上隱藏 */
   #printView{display:none}
   @media print{
-    .toolbar,footer,#groups,.dlbtn,.dir,.searchbox,.controls,.meta{display:none!important}
+    .toolbar,footer,#groups,.dlbtn,.dir,.searchbox,.controls,.meta,#pmodal,#gate{display:none!important}
     body{background:#fff;color:#000}
     .wrap{max-width:none;padding:0}
     header{margin-bottom:8px}
@@ -93,9 +93,53 @@
   mark{background:#fff2ac;color:inherit;border-radius:3px;padding:0 1px}
   footer{margin-top:40px;text-align:center;font-size:12px;color:var(--ink-soft)}
   @media(max-width:480px){.wrap{padding:20px 14px 60px}.grid{grid-template-columns:1fr}.dir{margin-left:0}.seg button{padding:7px 11px}}
+
+  /* 密碼鎖 */
+  #gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;padding:24px}
+  #gate .box{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 8px 40px rgba(21,34,56,.12);padding:34px 30px;width:100%;max-width:380px;text-align:center}
+  #gate .lock{width:52px;height:52px;border-radius:14px;background:var(--accent-soft);
+    display:grid;place-items:center;margin:0 auto 16px}
+  #gate .lock svg{width:26px;height:26px;stroke:var(--accent)}
+  #gate h2{font-size:19px;font-weight:800;margin-bottom:4px}
+  #gate p{font-size:13px;color:var(--ink-soft);margin-bottom:20px}
+  #gate input{width:100%;padding:13px 15px;font-size:16px;border:1.5px solid var(--line);
+    border-radius:12px;outline:none;text-align:center;letter-spacing:.05em;transition:border-color .15s,box-shadow .15s}
+  #gate input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  #gate button{width:100%;margin-top:12px;padding:13px;font:inherit;font-size:15px;font-weight:700;
+    color:#fff;background:var(--accent);border:0;border-radius:12px;cursor:pointer;transition:filter .12s}
+  #gate button:hover{filter:brightness(1.05)}
+  #gate .err{color:#d94f6a;font-size:13px;font-weight:600;margin-top:12px;min-height:18px}
+  body.locked{overflow:hidden}
+
+  /* 手機列印提示 */
+  #pmodal{position:fixed;inset:0;z-index:110;background:rgba(21,34,56,.5);display:none;
+    align-items:center;justify-content:center;padding:24px}
+  #pmodal.show{display:flex}
+  #pmodal .pbox{background:var(--card);border-radius:18px;max-width:400px;width:100%;
+    padding:26px 24px;box-shadow:0 12px 48px rgba(0,0,0,.3)}
+  #pmodal h3{font-size:18px;font-weight:800;margin-bottom:6px}
+  #pmodal .lead{font-size:13.5px;color:var(--ink-soft);margin-bottom:18px;line-height:1.6}
+  #pmodal .osblock{border:1px solid var(--line);border-radius:12px;padding:14px 15px;margin-bottom:12px}
+  #pmodal .osblock b{display:block;font-size:14px;margin-bottom:6px;color:var(--accent)}
+  #pmodal .osblock p{font-size:13px;color:var(--ink);line-height:1.65;margin:0}
+  #pmodal .pclose{width:100%;margin-top:8px;padding:12px;font:inherit;font-size:15px;font-weight:700;
+    color:#fff;background:var(--accent);border:0;border-radius:12px;cursor:pointer}
+  #pmodal .pgo{width:100%;margin-top:8px;padding:12px;font:inherit;font-size:14px;font-weight:700;
+    color:var(--accent);background:var(--accent-soft);border:0;border-radius:12px;cursor:pointer}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate">
+  <div class="box">
+    <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <h2>115-1校安（學務創新）人員培訓班</h2>
+    <p>本通訊錄含個人資料，請輸入通行碼查閱</p>
+    <input id="gpw" type="password" placeholder="請輸入通行碼" autocomplete="off" autofocus>
+    <button id="gbtn">進入通訊錄</button>
+    <div class="err" id="gerr"></div>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <div class="eyebrow">115-1校安（學務創新）人員培訓班</div>
@@ -129,6 +173,22 @@
   <footer>資料僅供校安訓內部聯繫使用，請妥善保管。</footer>
 </div>
 <script>
+(function(){
+  var PW="csu3939889";
+  var gate=document.getElementById("gate"),inp=document.getElementById("gpw"),
+      btn=document.getElementById("gbtn"),err=document.getElementById("gerr");
+  function tryUnlock(){
+    if(inp.value===PW){
+      gate.style.display="none";
+      document.body.classList.remove("locked");
+    }else{
+      err.textContent="通行碼錯誤，請再試一次";
+      inp.value="";inp.focus();
+    }
+  }
+  btn.addEventListener("click",tryUnlock);
+  inp.addEventListener("keydown",function(e){if(e.key==="Enter")tryUnlock();});
+})();
 /* ===== 學員資料：把示範資料換成真實資料即可。沒有的欄位留空字串 "" ，系統會自動顯示《未提供》 ===== */
 const DATA = [
   {sid:"101", name:"潘秋國", gender:"男", school:"正修科技大學", duty:"國際生宿舍管理", schoolPhone:"（07）7358800#1207", mobile:"0921-543-577", email:"savrin8754@gmail.com", line:"savrin168", addr:"高雄市鳥松區澄清路840號"},
@@ -336,9 +396,40 @@ function buildPrint(){
     '<th>學校電話</th><th>行動電話</th><th>電子信箱</th><th>Line ID</th><th>學校地址</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table>';
 }
-document.getElementById("dl").addEventListener("click",function(){buildPrint();window.print();});
+function isMobile(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);}
+document.getElementById("dl").addEventListener("click",function(){
+  buildPrint();
+  if(isMobile()){
+    document.getElementById("pmodal").classList.add("show");
+  }else{
+    window.print();
+  }
+});
+document.getElementById("pclose").addEventListener("click",function(){
+  document.getElementById("pmodal").classList.remove("show");
+});
+document.getElementById("pgo").addEventListener("click",function(){
+  document.getElementById("pmodal").classList.remove("show");
+  window.print();
+});
 q.addEventListener("input",render);
 render();
 </script>
+<div id="pmodal">
+  <div class="pbox">
+    <h3>在手機上儲存 PDF</h3>
+    <p class="lead">手機瀏覽器需透過「列印／分享」功能存成 PDF，請依你的手機操作：</p>
+    <div class="osblock">
+      <b>iPhone（Safari）</b>
+      <p>點畫面下方「分享」鈕 → 選「列印」→ 在預覽上用兩指往外撥放大 → 再按分享 →「儲存到檔案」。</p>
+    </div>
+    <div class="osblock">
+      <b>Android（Chrome）</b>
+      <p>點右上角「⋮」→「分享」或「列印」→ 印表機選「另存為 PDF」→ 儲存。</p>
+    </div>
+    <button class="pgo" id="pgo">仍要直接嘗試列印</button>
+    <button class="pclose" id="pclose">我知道了</button>
+  </div>
+</div>
 </body>
 </html>
