@@ -163,7 +163,7 @@
         <button data-k="city">縣市</button>
       </div>
       <button class="dir" id="dir"><svg id="dirIcon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m6 11 6-6 6 6"/></svg><span id="dirText">A→Z</span></button>
-      <button class="dlbtn" id="dl" title="下載或列印整份通訊錄" onclick="openModal()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>下載 PDF</button>
+      <button class="dlbtn" id="dl" title="列印或存成PDF" onclick="window.print()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>下載 PDF</button>
     </div>
     <div class="meta">
       <span id="count"></span>
@@ -399,32 +399,10 @@ function buildPrint(){
     '<th>學校電話</th><th>行動電話</th><th>電子信箱</th><th>Line ID</th><th>學校地址</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table>';
 }
-function isMobile(){return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);}
-var pmodal=document.getElementById("pmodal");
-window.openModal=function(){ pmodal.classList.add("show"); };
-window.closeModal=function(){ pmodal.classList.remove("show"); };
-window.doPrint=function(){ window.closeModal(); buildPrint(); setTimeout(function(){ window.print(); },200); };
-pmodal.addEventListener("click",function(e){ if(e.target===pmodal) window.closeModal(); });
+window.addEventListener("beforeprint",function(){ try{buildPrint();}catch(e){} });
 q.addEventListener("input",render);
 render();
+buildPrint();
 </script>
-<div id="pmodal">
-  <div class="pbox">
-    <button class="px" id="px" aria-label="關閉" onclick="closeModal()">&times;</button>
-    <h3>下載 PDF 建議用電腦操作</h3>
-    <p class="lead">手機瀏覽器對「存 PDF」支援不一，<b>建議改用電腦開啟本通訊錄再按下載</b>，可穩定存成條列式 PDF 或列印。<br><br>若仍要在手機嘗試，可先按下方鈕；若沒有反應，再依你的手機用手動方式操作：</p>
-    <button class="pgo" id="pdo" onclick="doPrint()">在手機嘗試列印 / 存 PDF</button>
-    <p class="lead" style="margin:14px 0 10px">手動存法：</p>
-    <div class="osblock">
-      <b>Android（Chrome）</b>
-      <p>點右上角「⋮」→「列印」→ 上方印表機選「儲存成 PDF」→ 按下載。</p>
-    </div>
-    <div class="osblock">
-      <b>iPhone（Safari）</b>
-      <p>點下方「分享」鈕 → 選「列印」→ 預覽用兩指放大 → 再按分享 →「儲存到檔案」。</p>
-    </div>
-    <button class="pclose" id="pclose" onclick="closeModal()">關閉，繼續查閱</button>
-  </div>
-</div>
 </body>
 </html>
